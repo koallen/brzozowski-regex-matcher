@@ -76,7 +76,24 @@ and remove_duplicate_list l = match l with
     | [] -> []
     | x :: xs -> (remove_duplicate x) :: (remove_duplicate_list xs)
 
-let rec simp r = r
+let rec convert_to_re r = match r with
+    | Epsilon_I   -> Epsilon
+    | Phi_I       -> Phi
+    | Letter_I r  -> Letter r
+    | Seq_I (r,s) -> Seq (convert_to_re r, convert_to_re s)
+    | Alt_I r     -> recover_alt r
+    | Star_I r    -> Star (convert_to_re r)
+and recover_alt l = match l with
+    | x :: [] -> convert_to_re x
+    | x :: xs -> Alt (convert_to_re x, recover_alt xs)
+
+let rec simp r = match r with
+    | Seq (r,s) -> Seq (simp r, simp s)
+    | Star r    -> Star (simp r)
+    | Alt _     -> let internal = convert_to_internal r in
+                   let no_duplicate = remove_duplicate internal in
+                       convert_to_re no_duplicate
+    | _ -> r
 
 (* Hint: You might want to transform a re value into some internal
          form where alternatives are kept in a list. *)
